@@ -51,15 +51,12 @@ public class SharedPotions {
 		global = config.getBoolean("global", Configuration.CATEGORY_GENERAL, false, "Share potions with the whole dimension (only with players, for type auto).");
 		range = config.getInt("range", Configuration.CATEGORY_GENERAL, 8, 1, 100, "The range potions will be shared within");
 		type = config.getString("type", Configuration.CATEGORY_GENERAL, "auto", "Type of sharing." + Configuration.NEW_LINE + "\"auto\": automatically for nearby entities," + Configuration.NEW_LINE + "\"hit\": you need to hit an entity with any potion (or glass bottle) in your hand", new String[] { "auto", "hit" });
-		//		hitItems=config.getStringList("hitItems", Configuration.CATEGORY_GENERAL, new String[]{"potion"}, "Items you need in your hand to share potions (for type \"hit\").");
 		if (config.hasChanged())
 			config.save();
 	}
 
 	private static void sharePotion(EntityPlayer player, EntityLivingBase entity) {
 		Iterable<PotionEffect> potions = player.getActivePotionEffects();
-		//		if (SharedPotions.onlyPositive)
-		//			potions = Iterables.filter(potions, (PotionEffect pe) -> !pe.getPotion().isBadEffect());
 		for (PotionEffect pe : potions)
 			if (!SharedPotions.onlyPositive || !pe.getPotion().isBadEffect()) {
 				PotionEffect p = PotionEffect.readCustomPotionEffectFromNBT(pe.writeCustomPotionEffectToNBT(new NBTTagCompound()));
@@ -71,12 +68,12 @@ public class SharedPotions {
 	public static void update(LivingUpdateEvent event) {
 		if (!SharedPotions.type.equalsIgnoreCase("auto"))
 			return;
-		if (!event.getEntityLiving().worldObj.isRemote && event.getEntityLiving() instanceof EntityPlayer) {
+		if (!event.getEntityLiving().world.isRemote && event.getEntityLiving() instanceof EntityPlayer) {
 			EntityPlayerMP player = (EntityPlayerMP) event.getEntityLiving();
 			if (player.ticksExisted % 35 == 0) {
-				Set<EntityLivingBase> ents = Sets.newHashSet(player.worldObj.getEntitiesWithinAABB(SharedPotions.onlyPlayer ? EntityPlayer.class : EntityLivingBase.class, new AxisAlignedBB(player.posX + SharedPotions.range, player.posY + SharedPotions.range, player.posZ + SharedPotions.range, player.posX - SharedPotions.range, player.posY - SharedPotions.range, player.posZ - SharedPotions.range)));
+				Set<EntityLivingBase> ents = Sets.newHashSet(player.world.getEntitiesWithinAABB(SharedPotions.onlyPlayer ? EntityPlayer.class : EntityLivingBase.class, new AxisAlignedBB(player.posX + SharedPotions.range, player.posY + SharedPotions.range, player.posZ + SharedPotions.range, player.posX - SharedPotions.range, player.posY - SharedPotions.range, player.posZ - SharedPotions.range)));
 				if (SharedPotions.global)
-					ents.addAll(player.worldObj.playerEntities);
+					ents.addAll(player.world.playerEntities);
 				ents.remove(player);
 				//Lists.<String>newArrayList().stream().filter(s->s.equalsIgnoreCase("nanana")).findFirst().isPresent();
 				for (EntityLivingBase entity : ents)
@@ -91,11 +88,11 @@ public class SharedPotions {
 		if (!SharedPotions.type.equalsIgnoreCase("hit"))
 			return;
 		Item[] items = new Item[] { Items.POTIONITEM, Items.SPLASH_POTION, Items.GLASS_BOTTLE, Items.LINGERING_POTION };
-		if (!event.getEntityPlayer().worldObj.isRemote && event.getEntityPlayer().getHeldItemMainhand() != null && ArrayUtils.contains(items, event.getEntityPlayer().getHeldItemMainhand().getItem()) && event.getTarget() instanceof EntityLivingBase) {
+		if (!event.getEntityPlayer().world.isRemote && event.getEntityPlayer().getHeldItemMainhand() != null && ArrayUtils.contains(items, event.getEntityPlayer().getHeldItemMainhand().getItem()) && event.getTarget() instanceof EntityLivingBase) {
 			EntityLivingBase entity = (EntityLivingBase) event.getTarget();
 			if (!SharedPotions.onlyPlayer || entity instanceof EntityPlayer) {
 				sharePotion(event.getEntityPlayer(), entity);
-				event.getEntityPlayer().addChatComponentMessage(new TextComponentString("Shared potions {" + event.getEntityPlayer().getActivePotionEffects().stream().//
+				event.getEntityPlayer().sendMessage(new TextComponentString("Shared potions {" + event.getEntityPlayer().getActivePotionEffects().stream().//
 						map(p -> I18n.format(p.getEffectName())).//
 						collect(Collectors.joining(", ")) + "} with " + entity.getDisplayName().getFormattedText() + "."));
 			}
